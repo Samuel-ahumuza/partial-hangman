@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>HANGMAN</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Outfit:wght@300;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:    #1a0a00;
+  --paper:  #f5ede0;
+  --cream:  #ede0cc;
+  --burnt:  #c0440a;
+  --ember:  #e8601a;
+  --ash:    #7a6a58;
+  --charcoal:#3d2e1e;
+  --correct:#2e7d4f;
+  --wrong:  #b32828;
+  --line:   #c4a882;
+  --shadow: rgba(26,10,0,0.18);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px 32px;
+  /* subtle paper texture via repeating gradient */
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(180,150,100,0.08) 28px),
+    repeating-linear-gradient(90deg, transparent, transparent 27px, rgba(180,150,100,0.05) 28px);
+}
+
+/* ── HEADER ── */
+header {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0 20px;
+  border-bottom: 2px solid var(--line);
+  margin-bottom: 24px;
+}
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2rem, 7vw, 3.2rem);
+  letter-spacing: 0.08em;
+  color: var(--burnt);
+  line-height: 1;
+  text-shadow: 3px 3px 0 var(--cream);
+}
+
+.score-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.score-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ash); }
+.score-val   { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: var(--charcoal); line-height:1; }
+
+/* ── MAIN LAYOUT ── */
+.game-wrap {
+  width: 100%;
+  max-width: 700px;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+@media(max-width:580px){
+  .game-wrap { grid-template-columns: 1fr; gap: 14px; }
+}
+
+/* ── GALLOWS SVG ── */
+.gallows-wrap {
+  background: var(--cream);
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  padding: 12px;
+  box-shadow: 4px 4px 0 var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#gallows { width: 100%; max-width: 200px; height: auto; display: block; }
+
+/* ── RIGHT PANEL ── */
+.right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+/* Category badge */
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--charcoal);
+  color: var(--paper);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+/* Word display */
+.word-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+.letter-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.letter-char {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  color: var(--charcoal);
+  min-width: 28px;
+  text-align: center;
+  height: 1.1em;
+  transition: transform 0.25s cubic-bezier(.34,1.56,.64,1);
+}
+.letter-char.pre-revealed {
+  color: var(--burnt);
+  opacity: 0.75;
+}
+.letter-char.pre-revealed + .letter-line {
+  background: var(--burnt);
+  opacity: 0.5;
+}
+@keyframes pop { 0%{transform:scale(0) rotate(-8deg)} 80%{transform:scale(1.15)} 100%{transform:scale(1)} }
+.letter-char.wrong-flash { animation: wrongFlash 0.4s ease; }
+@keyframes wrongFlash { 0%,100%{color:var(--charcoal)} 50%{color:var(--wrong)} }
+.letter-line {
+  width: 100%;
+  height: 3px;
+  background: var(--charcoal);
+  border-radius: 2px;
+  min-width: 22px;
+}
+
+/* Hint: remaining guesses */
+.lives-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lives-label { font-size: 0.75rem; color: var(--ash); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+.heart {
+  font-size: 1.1rem;
+  transition: transform 0.2s;
+}
+.heart.lost { filter: grayscale(1) opacity(0.3); transform: scale(0.8); }
+
+/* Wrong letters */
+.wrong-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.wrong-title { font-size: 0.72rem; color: var(--ash); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; }
+.wrong-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.wrong-letter {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--wrong);
+  background: rgba(179,40,40,0.08);
+  border: 1px solid rgba(179,40,40,0.25);
+  border-radius: 5px;
+  padding: 2px 7px;
+  animation: slideIn 0.2s ease;
+}
+@keyframes slideIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── KEYBOARD ── */
+.keyboard {
+  width: 100%;
+  max-width: 700px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.key-row { display: flex; gap: 6px; justify-content: center; flex-wrap: nowrap; }
+.key {
+  flex: 1;
+  max-width: 52px;
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 2px solid var(--charcoal);
+  background: var(--paper);
+  border-radius: 8px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(0.95rem, 3vw, 1.25rem);
+  color: var(--charcoal);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s, box-shadow 0.1s;
+  box-shadow: 2px 2px 0 var(--charcoal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.key:hover:not(:disabled) {
+  background: var(--burnt);
+  color: var(--paper);
+  transform: translateY(-2px);
+  box-shadow: 2px 4px 0 var(--charcoal);
+}
+.key:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 1px 1px 0 var(--charcoal);
+}
+.key.used-correct {
+  background: var(--correct);
+  color: #fff;
+  border-color: var(--correct);
+  box-shadow: none;
+  cursor: default;
+}
+.key.used-wrong {
+  background: var(--cream);
+  color: var(--line);
+  border-color: var(--line);
+  box-shadow: none;
+  cursor: default;
+}
+.key:disabled { pointer-events: none; }
+
+/* ── OVERLAY (win/lose) ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,10,0,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.35s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.overlay.hidden { display: none; }
+.modal {
+  background: var(--paper);
+  border: 3px solid var(--charcoal);
+  border-radius: 18px;
+  padding: 36px 40px;
+  text-align: center;
+  box-shadow: 8px 8px 0 var(--charcoal);
+  max-width: 380px;
+  width: 90%;
+  animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn { from{transform:scale(0.7) rotate(-3deg)} to{transform:scale(1) rotate(0)} }
+.modal-emoji { font-size: 3.5rem; margin-bottom: 10px; display: block; }
+.modal-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.6rem;
+  color: var(--burnt);
+  letter-spacing: 0.06em;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.modal-word {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--charcoal);
+  margin-bottom: 22px;
+  background: var(--cream);
+  padding: 6px 14px;
+  border-radius: 8px;
+  display: inline-block;
+}
+.modal-sub { font-size: 0.88rem; color: var(--ash); margin-bottom: 22px; }
+.btn-play {
+  background: var(--burnt);
+  color: var(--paper);
+  border: 2px solid var(--charcoal);
+  border-radius: 10px;
+  padding: 13px 32px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--charcoal);
+  transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+}
+.btn-play:hover { background: var(--ember); transform: translateY(-2px); box-shadow: 3px 5px 0 var(--charcoal); }
+.btn-play:active { transform: translateY(1px); box-shadow: 1px 1px 0 var(--charcoal); }
+
+/* hint button */
+.hint-btn {
+  background: none;
+  border: 2px solid var(--line);
+  color: var(--ash);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  text-transform: uppercase;
+}
+.hint-btn:hover { border-color: var(--burnt); color: var(--burnt); }
+.hint-txt {
+  font-size: 0.82rem;
+  color: var(--ash);
+  font-style: italic;
+  background: var(--cream);
+  padding: 7px 11px;
+  border-radius: 7px;
+  border-left: 3px solid var(--burnt);
+  animation: fadeIn 0.25s ease;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Hangman</div>
+  <div class="score-box">
+    <span class="score-label">Score</span>
+    <span class="score-val" id="scoreVal">0</span>
+  </div>
+</header>
+
+<!-- GAME AREA -->
+<div class="game-wrap">
+
+  <!-- LEFT: Gallows -->
+  <div class="gallows-wrap">
+    <svg id="gallows" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- Structure -->
+      <line x1="10" y1="195" x2="150" y2="195" stroke="#3d2e1e" stroke-width="5" stroke-linecap="round"/>
+      <line x1="40" y1="195" x2="40"  y2="10"  stroke="#3d2e1e" stroke-width="5" stroke-linecap="round"/>
+      <line x1="40" y1="10"  x2="110" y2="10"  stroke="#3d2e1e" stroke-width="5" stroke-linecap="round"/>
+      <line x1="110" y1="10" x2="110" y2="30"  stroke="#3d2e1e" stroke-width="3" stroke-linecap="round"/>
+      <!-- Man parts (hidden by default) -->
+      <!-- Head -->
+      <circle id="h-head" cx="110" cy="43" r="13" stroke="#c0440a" stroke-width="3.5" fill="none" opacity="0"/>
+      <!-- Body -->
+      <line id="h-body" x1="110" y1="56" x2="110" y2="110" stroke="#c0440a" stroke-width="3.5" stroke-linecap="round" opacity="0"/>
+      <!-- Left arm -->
+      <line id="h-larm" x1="110" y1="68" x2="85"  y2="90"  stroke="#c0440a" stroke-width="3.5" stroke-linecap="round" opacity="0"/>
+      <!-- Right arm -->
+      <line id="h-rarm" x1="110" y1="68" x2="135" y2="90"  stroke="#c0440a" stroke-width="3.5" stroke-linecap="round" opacity="0"/>
+      <!-- Left leg -->
+      <line id="h-lleg" x1="110" y1="110" x2="85"  y2="140" stroke="#c0440a" stroke-width="3.5" stroke-linecap="round" opacity="0"/>
+      <!-- Right leg -->
+      <line id="h-rleg" x1="110" y1="110" x2="135" y2="140" stroke="#c0440a" stroke-width="3.5" stroke-linecap="round" opacity="0"/>
+    </svg>
+  </div>
+
+  <!-- RIGHT: Game controls -->
+  <div class="right-panel">
+    <div class="category-badge">
+      <span>📂</span>
+      <span id="categoryLabel">Loading…</span>
+    </div>
+
+    <div class="word-row" id="wordRow"></div>
+
+    <div class="lives-row">
+      <span class="lives-label">Lives</span>
+      <div id="heartsRow"></div>
+    </div>
+
+    <div class="wrong-row">
+      <span class="wrong-title">Wrong:</span>
+      <div class="wrong-letters" id="wrongLetters"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="hint-btn" id="hintBtn">💡 Hint</button>
+      <div id="hintBox" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- KEYBOARD -->
+<div class="keyboard" id="keyboard"></div>
+
+<!-- WIN/LOSE OVERLAY -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <span class="modal-emoji" id="modalEmoji"></span>
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-word" id="modalWord"></div>
+    <div class="modal-sub" id="modalSub"></div>
+    <button class="btn-play" id="playAgainBtn">Play Again</button>
+  </div>
+</div>
+
+<script>
+// ── WORD BANK ────────────────────────────────────────────────────────────────
+const WORDS = [
+  {w:"ELEPHANT",    c:"Animals",   hint:"Largest land animal"},
+  {w:"GIRAFFE",     c:"Animals",   hint:"Has an incredibly long neck"},
+  {w:"PENGUIN",     c:"Animals",   hint:"Tuxedo-wearing bird"},
+  {w:"CHAMELEON",   c:"Animals",   hint:"Master of disguise"},
+  {w:"PLATYPUS",    c:"Animals",   hint:"Lays eggs but is a mammal"},
+  {w:"DOLPHIN",     c:"Animals",   hint:"Highly intelligent marine mammal"},
+  {w:"VOLCANO",     c:"Nature",    hint:"Mountain that erupts"},
+  {w:"GLACIER",     c:"Nature",    hint:"Slow-moving river of ice"},
+  {w:"TORNADO",     c:"Nature",    hint:"Violent rotating column of air"},
+  {w:"AVALANCHE",   c:"Nature",    hint:"Rapid snow slide down a mountain"},
+  {w:"ECLIPSE",     c:"Nature",    hint:"When one celestial body blocks another"},
+  {w:"PIANO",       c:"Music",     hint:"88 keys, makes beautiful sounds"},
+  {w:"TRUMPET",     c:"Music",     hint:"Brass instrument with valves"},
+  {w:"SAXOPHONE",   c:"Music",     hint:"Invented by Adolphe Sax"},
+  {w:"DRUMKIT",     c:"Music",     hint:"Percussion set played with sticks"},
+  {w:"VIOLIN",      c:"Music",     hint:"Played with a bow"},
+  {w:"PYRAMID",     c:"History",   hint:"Ancient Egyptian wonder"},
+  {w:"COLOSSEUM",   c:"History",   hint:"Roman amphitheatre"},
+  {w:"SPHINX",      c:"History",   hint:"Lion body, human head sculpture"},
+  {w:"GLADIATOR",   c:"History",   hint:"Roman arena fighter"},
+  {w:"PAPYRUS",     c:"History",   hint:"Ancient Egyptian paper material"},
+  {w:"ASTRONAUT",   c:"Space",     hint:"Travels beyond Earth's atmosphere"},
+  {w:"NEBULA",      c:"Space",     hint:"Cloud of gas and dust in space"},
+  {w:"ASTEROID",    c:"Space",     hint:"Rocky body orbiting the sun"},
+  {w:"SATELLITE",   c:"Space",     hint:"Object orbiting a planet"},
+  {w:"BLACKHOLE",   c:"Space",     hint:"Region where gravity is inescapable"},
+  {w:"SPAGHETTI",   c:"Food",      hint:"Long thin Italian pasta"},
+  {w:"AVOCADO",     c:"Food",      hint:"Green fruit used in guacamole"},
+  {w:"CROISSANT",   c:"Food",      hint:"Buttery French pastry"},
+  {w:"PINEAPPLE",   c:"Food",      hint:"Tropical fruit with spiky crown"},
+  {w:"CHOCOLATE",   c:"Food",      hint:"Sweet treat from cacao beans"},
+  {w:"LIBRARY",     c:"Places",    hint:"Borrow books here for free"},
+  {w:"STADIUM",     c:"Places",    hint:"Large sports arena"},
+  {w:"MUSEUM",      c:"Places",    hint:"Displays art and history artefacts"},
+  {w:"LIGHTHOUSE",  c:"Places",    hint:"Guides ships with a rotating beam"},
+  {w:"LABORATORY",  c:"Science",   hint:"Where experiments happen"},
+  {w:"MICROSCOPE",  c:"Science",   hint:"Magnifies tiny objects"},
+  {w:"GRAVITY",     c:"Science",   hint:"Force that pulls things down"},
+  {w:"MOLECULE",    c:"Science",   hint:"Group of atoms bonded together"},
+  {w:"ALGORITHM",   c:"Tech",      hint:"Step-by-step problem-solving instructions"},
+  {w:"DATABASE",    c:"Tech",      hint:"Organised collection of stored data"},
+  {w:"KEYBOARD",    c:"Tech",      hint:"Input device with letters and numbers"},
+];
+
+const MAX_WRONG = 6;
+const BODY_PARTS = ["h-head","h-body","h-larm","h-rarm","h-lleg","h-rleg"];
+const KEYBOARD_ROWS = ["QWERTYUIOP","ASDFGHJKL","ZXCVBNM"];
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let word="", category="", hint="", guessed=new Set(), revealed=new Set(), wrongCount=0, score=0, gameOver=false;
+
+// ── PRE-REVEAL LETTERS ────────────────────────────────────────────────────────
+// Reveals ~35-45% of unique letters from the word as free starters
+function pickRevealedLetters(w) {
+  const unique = [...new Set(w.split(''))];
+  // Always reveal vowels that appear, up to 1 or 2 depending on word length
+  const vowels = unique.filter(c => 'AEIOU'.includes(c));
+  const consonants = unique.filter(c => !'AEIOU'.includes(c));
+
+  const revSet = new Set();
+
+  // Reveal 1 vowel (if any)
+  if (vowels.length > 0) {
+    revSet.add(vowels[Math.floor(Math.random() * vowels.length)]);
+  }
+
+  // Reveal 1-2 random consonants (not the rarest ones, pick from middle)
+  const shuffled = consonants.sort(() => Math.random() - 0.5);
+  const extra = w.length <= 6 ? 1 : 2;
+  for (let i = 0; i < Math.min(extra, shuffled.length); i++) {
+    revSet.add(shuffled[i]);
+  }
+
+  // Make sure we're not revealing ALL the letters (keep at least 2 hidden)
+  const hiddenCount = unique.filter(c => !revSet.has(c)).length;
+  if (hiddenCount < 2 && revSet.size > 1) {
+    // Remove one revealed letter
+    const arr = [...revSet];
+    revSet.delete(arr[arr.length - 1]);
+  }
+
+  return revSet;
+}
+
+// ── AUDIO (Web Audio API) ────────────────────────────────────────────────────
+const AC = new (window.AudioContext||window.webkitAudioContext)();
+
+function playTone(freq, type, dur, vol=0.22) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.connect(g); g.connect(AC.destination);
+  o.type = type; o.frequency.setValueAtTime(freq, AC.currentTime);
+  g.gain.setValueAtTime(vol, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + dur);
+  o.start(); o.stop(AC.currentTime + dur);
+}
+
+function soundCorrect() {
+  playTone(440,'triangle',0.12); 
+  setTimeout(()=>playTone(554,'triangle',0.15),80);
+  setTimeout(()=>playTone(659,'triangle',0.2),180);
+}
+
+function soundWrong() {
+  playTone(180,'sawtooth',0.18,0.15);
+  setTimeout(()=>playTone(140,'sawtooth',0.22,0.12),100);
+}
+
+function soundWin() {
+  const notes=[523,659,784,1047];
+  notes.forEach((f,i)=>setTimeout(()=>playTone(f,'triangle',0.35,0.18),i*120));
+}
+
+function soundLose() {
+  const notes=[300,240,180,120];
+  notes.forEach((f,i)=>setTimeout(()=>playTone(f,'sawtooth',0.3,0.15),i*130));
+}
+
+function resumeAC() { if(AC.state==='suspended') AC.resume(); }
+
+// ── INIT GAME ─────────────────────────────────────────────────────────────────
+function newGame() {
+  const entry = WORDS[Math.floor(Math.random()*WORDS.length)];
+  word = entry.w; category = entry.c; hint = entry.hint;
+  revealed = pickRevealedLetters(word);
+  // Pre-add revealed letters to guessed so win-check works correctly
+  guessed = new Set([...revealed]);
+  wrongCount = 0; gameOver = false;
+
+  // Reset gallows
+  BODY_PARTS.forEach(id => {
+    document.getElementById(id).setAttribute('opacity','0');
+  });
+
+  document.getElementById('categoryLabel').textContent = category;
+  document.getElementById('wrongLetters').innerHTML = '';
+  document.getElementById('hintBox').style.display = 'none';
+  document.getElementById('overlay').classList.add('hidden');
+
+  renderHearts();
+  renderWord();
+  renderKeyboard();
+}
+
+// ── RENDER WORD ───────────────────────────────────────────────────────────────
+function renderWord() {
+  const row = document.getElementById('wordRow');
+  row.innerHTML = '';
+  [...word].forEach((ch, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'letter-slot';
+    const char = document.createElement('div');
+    char.className = 'letter-char';
+    char.id = 'slot-' + i;  // use position-based ID to support duplicate letters
+
+    if (revealed.has(ch) || guessed.has(ch)) {
+      char.textContent = ch;
+      if (revealed.has(ch) && !guessed.has(ch) || (revealed.has(ch))) {
+        // Pre-revealed letters: show in muted burnt colour as a "given" letter
+        char.classList.add('pre-revealed');
+      }
+    } else {
+      char.textContent = '\u00A0';
+    }
+
+    const line = document.createElement('div');
+    line.className = 'letter-line';
+    slot.appendChild(char);
+    slot.appendChild(line);
+    row.appendChild(slot);
+  });
+}
+
+// ── RENDER HEARTS ─────────────────────────────────────────────────────────────
+function renderHearts() {
+  const row = document.getElementById('heartsRow');
+  row.innerHTML = '';
+  for(let i=0;i<MAX_WRONG;i++){
+    const h = document.createElement('span');
+    h.className = 'heart' + (i < wrongCount ? ' lost' : '');
+    h.textContent = i < wrongCount ? '🖤' : '❤️';
+    row.appendChild(h);
+  }
+}
+
+// ── RENDER KEYBOARD ───────────────────────────────────────────────────────────
+function renderKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  for(const row of KEYBOARD_ROWS) {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'key-row';
+    for(const letter of row) {
+      const btn = document.createElement('button');
+      btn.className = 'key';
+      btn.textContent = letter;
+      btn.dataset.letter = letter;
+      // Pre-revealed letters are already "used" — mark them as given
+      if (revealed.has(letter)) {
+        btn.classList.add('used-given');
+        btn.disabled = true;
+      } else {
+        btn.addEventListener('click', () => { resumeAC(); guess(letter); });
+      }
+      rowDiv.appendChild(btn);
+    }
+    kb.appendChild(rowDiv);
+  }
+}
+
+// ── GUESS ─────────────────────────────────────────────────────────────────────
+function guess(letter) {
+  if(gameOver || guessed.has(letter) || revealed.has(letter)) return;
+  guessed.add(letter);
+
+  const btn = document.querySelector(`.key[data-letter="${letter}"]`);
+  if(btn) btn.disabled = true;
+
+  if(word.includes(letter)) {
+    soundCorrect();
+    if(btn) btn.classList.add('used-correct');
+    // Reveal all positions of this letter
+    [...word].forEach((ch, i) => {
+      if(ch === letter) {
+        const el = document.getElementById('slot-' + i);
+        if(el){ el.textContent = ch; el.classList.add('pop'); el.addEventListener('animationend',()=>el.classList.remove('pop'),{once:true}); }
+      }
+    });
+    checkWin();
+  } else {
+    soundWrong();
+    if(btn) btn.classList.add('used-wrong');
+    wrongCount++;
+    const part = document.getElementById(BODY_PARTS[wrongCount-1]);
+    if(part) { part.setAttribute('opacity','1'); }
+    const span = document.createElement('span');
+    span.className = 'wrong-letter';
+    span.textContent = letter;
+    document.getElementById('wrongLetters').appendChild(span);
+    renderHearts();
+    // Flash only the blank slots
+    document.querySelectorAll('.letter-char:not(.pre-revealed)').forEach(el=>{
+      el.classList.add('wrong-flash');
+      el.addEventListener('animationend',()=>el.classList.remove('wrong-flash'),{once:true});
+    });
+    if(wrongCount >= MAX_WRONG) endGame(false);
+  }
+}
+
+function checkWin() {
+  const won = [...word].every(ch => guessed.has(ch) || revealed.has(ch));
+  if(won) endGame(true);
+}
+
+// ── END GAME ──────────────────────────────────────────────────────────────────
+function endGame(won) {
+  gameOver = true;
+  if(won) {
+    score += Math.max(10, 50 - wrongCount*8);
+    document.getElementById('scoreVal').textContent = score;
+    soundWin();
+    document.getElementById('modalEmoji').textContent = '🎉';
+    document.getElementById('modalTitle').textContent = 'You Got It!';
+    document.getElementById('modalWord').textContent = word;
+    document.getElementById('modalSub').textContent = `+${Math.max(10,50-wrongCount*8)} points · Score: ${score}`;
+  } else {
+    soundLose();
+    // Reveal missing letters in red
+    [...word].forEach((ch, i) => {
+      if(!guessed.has(ch) && !revealed.has(ch)) {
+        const el = document.getElementById('slot-' + i);
+        if(el) { el.textContent = ch; el.style.color = 'var(--wrong)'; }
+      }
+    });
+    document.getElementById('modalEmoji').textContent = '💀';
+    document.getElementById('modalTitle').textContent = 'Hanged!';
+    document.getElementById('modalWord').textContent = word;
+    document.getElementById('modalSub').textContent = `The word was "${word}". Better luck next time!`;
+  }
+  setTimeout(()=>{
+    document.getElementById('overlay').classList.remove('hidden');
+  }, won ? 600 : 900);
+}
+
+// ── HINT ──────────────────────────────────────────────────────────────────────
+document.getElementById('hintBtn').addEventListener('click', () => {
+  resumeAC();
+  const box = document.getElementById('hintBox');
+  if(box.style.display==='none') {
+    box.className='hint-txt';
+    box.textContent = '💡 '+hint;
+    box.style.display='block';
+  } else {
+    box.style.display='none';
+  }
+});
+
+// ── PLAY AGAIN ────────────────────────────────────────────────────────────────
+document.getElementById('playAgainBtn').addEventListener('click', () => { resumeAC(); newGame(); });
+
+// ── PHYSICAL KEYBOARD SUPPORT ─────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const letter = e.key.toUpperCase();
+  if(/^[A-Z]$/.test(letter) && !gameOver) { resumeAC(); guess(letter); }
+});
+
+// ── START ─────────────────────────────────────────────────────────────────────
+newGame();
+</script>
+</body>
+</html>
