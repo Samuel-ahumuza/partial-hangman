@@ -45,7 +45,7 @@ No installation needed. Just open the file in any modern browser.
 
 ```bash
 # Clone the repo
-git clone https://github.com/Samuel-ahumuza/partial-hangman/blob/main/index.html
+git clone https://github.com/Samuel-ahumuza/partial-hangman
 
 # Open the game
 open hangman.html
