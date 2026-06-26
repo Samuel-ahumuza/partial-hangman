@@ -1,6 +1,6 @@
 # partial-hangman
-A word-guessing game where partial letters are revealed and you fill in the blanks to complete the word.
-# 🔤 LetterClue — Word Reveal Game
+A word guessing game where partial letters are revealed and you fill in the blanks to complete the word.
+# 🔤 LetterClue / Word Reveal Game
 
 > A browser-based word-guessing game where partial letters are revealed and you fill in the blanks to complete the word.
 
@@ -17,7 +17,7 @@ Built entirely in **one single HTML file** — no frameworks, no dependencies, n
 ## 🎮 How to Play
 
 1. A word is chosen at random from a themed category (Animals, Space, Food, Music, etc.)
-2. Some letters are pre-revealed as clues — the rest are shown as blanks `_`
+2. Some letters are pre-revealed as clues the rest are shown as blanks `_`
 3. Use the on-screen keyboard (or your physical keyboard) to guess the missing letters
 4. You have **6 lives** — each wrong guess costs one
 5. Use the 💡 **Hint** button if you're stuck
@@ -45,7 +45,7 @@ No installation needed. Just open the file in any modern browser.
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/letterclue.git
+git clone https://github.com/Samuel-ahumuza/partial-hangman
 
 # Open the game
 open hangman.html
@@ -80,7 +80,7 @@ letterclue/
 
 ## 🎨 Design
 
-The game uses a **vintage paper aesthetic** — deliberately avoiding generic AI colour schemes (no purple gradients, no dark mode blues). The palette is built around:
+The game uses a **vintage paper aesthetic** deliberately avoiding generic AI colour schemes (no purple gradients, no dark mode blues). The palette is built around:
 
 - `#f5ede0` — warm cream paper background
 - `#c0440a` — burnt orange accent
