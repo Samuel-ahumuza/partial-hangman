@@ -8,9 +8,9 @@ A word guessing game where partial letters are revealed and you fill in the blan
 
 ## 📖 About
 
-**LetterClue** is a reimagined Hangman experience. Instead of guessing completely blind, players are shown a partially revealed word — like `_ a _ _ m a _` — and must figure out the full word before running out of lives. It blends the classic tension of Hangman with the satisfying "aha!" moment of word recognition.
+**LetterClue** is a reimagined Hangman experience. Instead of guessing completely blind, players are shown a partially revealed word like `_ a _ _ m a _` and must figure out the full word before running out of lives. It blends the classic tension of Hangman with the satisfying "aha!" moment of word recognition.
 
-Built entirely in **one single HTML file** — no frameworks, no dependencies, no build tools.
+Built entirely in **one single HTML file** no frameworks, no dependencies, no build tools.
 
 ---
 
@@ -19,7 +19,7 @@ Built entirely in **one single HTML file** — no frameworks, no dependencies, n
 1. A word is chosen at random from a themed category (Animals, Space, Food, Music, etc.)
 2. Some letters are pre-revealed as clues the rest are shown as blanks `_`
 3. Use the on-screen keyboard (or your physical keyboard) to guess the missing letters
-4. You have **6 lives** — each wrong guess costs one
+4. You have **6 lives** each wrong guess costs one
 5. Use the 💡 **Hint** button if you're stuck
 6. Complete the word before the hangman is fully drawn to win points!
 
